@@ -11,6 +11,7 @@ spark = SparkSession \
     .config("spark.some.config.option", "some-value") \
     .getOrCreate()
 
-distFile = spark.read.option("Header",True).csv("google-traces/collection_events/collection_events-000000000000.csv")
+collectionsEvents = spark.read.option("Header",True).csv("google-traces/collection_events/collection_events-000000000000.csv")
+instanceEvents = spark.read.option("Header",True).csv("google-traces/instance_events/instance_events-000000000000.csv")
 
-distFile.show()
+collectionsEvents.show()
