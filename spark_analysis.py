@@ -37,7 +37,12 @@ def resourceRequest(events,operation='sum',dimension='hour'):
 
     return usagePerHour
 
-def jobsTasksHour(events):
+def jobsTasksOnAverageByDimension(events,dimension='hour'):
+
+    dimension_options = {
+        'hour':MICRO_TO_HOUR,
+        'day':MICRO_TO_DAY
+    }
 
     """
 
@@ -64,25 +69,29 @@ def jobsTasksHour(events):
     traceEnd = events.select(max('casted_time')).collect()[0][0]
     traceStart = events.select(min('casted_time')).collect()[0][0]
 
-    hoursElapsed = (traceEnd-traceStart)/microToHour
+    timeElapsed = (traceEnd-traceStart)/dimension_options[dimension]
 
-    eventsPerHour = count/hoursElapsed
+    eventsPerDimension = count/timeElapsed
 
-    return eventsPerHour
+    return eventsPerDimension
 
-def jobsTaskHourbyHour(events):
-    microToHour = 3.6e+9
+def jobsTaskAlongDimension(events,dimension='hour'):
+
+    dimension_options = {
+        'hour':MICRO_TO_HOUR,
+        'day':MICRO_TO_DAY
+    }
 
     events = events.withColumn('time',col('time').cast("long"))
     events = events.filter(events.time > 0)
     events = events.filter(events.type == 0)
 
 
-    events = events.withColumn('hourOfTrace',round(col('time')/microToHour,0))
+    events = events.withColumn(f'{dimension}OfTrace',round(col('time')/dimension_options[dimension],0))
 
-    countJobsTaskHour = events.groupBy('hourOfTrace').count()
+    countJobsTaskHour = events.groupBy(f'{dimension}OfTrace').count()
 
-    countJobsTaskHour = countJobsTaskHour.orderBy(col("hourOfTrace").asc())
+    countJobsTaskHour = countJobsTaskHour.orderBy(col(f'{dimension}OfTrace').asc())
     
     return countJobsTaskHour
 
@@ -117,11 +126,21 @@ eventsFrames = [
 
 unifiedInstanceEvents = unionAll(eventsFrames)
 
-resourceRequest(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
-resourceRequest(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
-# resourceRequestHourly(unifiedInstanceEvents,'stddev').write.csv('resource_stddev_usage_hourly',header=True)
+#REQUISITO 1
+# resourceRequest(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
+# resourceRequest(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
+# resourceRequest(unifiedInstanceEvents,'stddev',args.dimension).write.csv(f'resource_stddev_usage_{args.dimension}',header=True)
 
-# avgJobHour = jobsTasksHour(collectionsEvents)
+#REQUISITO 3
+# avgJob = jobsTasksOnAverageByDimension(collectionsEvents,dimension=args.dimension)
+# print(f"Jobs by {args.dimension}: " + str(avgJob))
+# jobsTaskAlongDimension(collectionsEvents,dimension=args.dimension).write.csv(f'jobs_{args.dimension}',header=True)
+
+#REQUISITO 4
+# avgTask = jobsTasksOnAverageByDimension(unifiedInstanceEvents,dimension=args.dimension)
+# print(f"Tasks by {args.dimension}: " + str(avgTask))
+jobsTaskAlongDimension(unifiedInstanceEvents,dimension=args.dimension).write.csv(f'tasks_{args.dimension}',header=True)
+
 # avgTaskHour = jobsTasksHour(unifiedInstanceEvents)
 # avgResourceHourly = avgResourceRequestHourly(unifiedInstanceEvents)
 # totalResourceHourly = sumResourceRequestHourly(unifiedInstanceEvents)
