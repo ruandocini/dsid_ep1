@@ -10,7 +10,7 @@ import argparse
 MICRO_TO_HOUR = 3.6e+9
 MICRO_TO_DAY = 8.64e+10
 
-def resourceRequestHourly(events,operation='sum',dimension='hour'):
+def resourceRequest(events,operation='sum',dimension='hour'):
 
     dimension_options = {
         'hour':MICRO_TO_HOUR,
@@ -117,8 +117,8 @@ eventsFrames = [
 
 unifiedInstanceEvents = unionAll(eventsFrames)
 
-resourceRequestHourly(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
-resourceRequestHourly(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
+resourceRequest(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
+resourceRequest(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
 # resourceRequestHourly(unifiedInstanceEvents,'stddev').write.csv('resource_stddev_usage_hourly',header=True)
 
 # avgJobHour = jobsTasksHour(collectionsEvents)
