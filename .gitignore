@@ -1,1 +1,4 @@
 /google-traces
+/resource_stddev_usage_hourly
+/resource_avg_usage_hourly
+/resource_sum_usage_hourly
