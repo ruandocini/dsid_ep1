@@ -37,6 +37,24 @@ def resourceRequest(events,operation='sum',dimension='hour'):
 
     return usagePerHour
 
+def jobTypeFrequency(events,dimension='hour'):
+
+    dimension_options = {
+        'hour':MICRO_TO_HOUR,
+        'day':MICRO_TO_DAY
+    }
+
+    events = events.withColumn('casted_time',col('time').cast("long"))
+    events = events.filter(events.casted_time > 0)
+
+    events = events.withColumn(f'{dimension}OfTrace',round(col('time')/dimension_options[dimension],0))
+
+    frequency = events.groupBy(f'{dimension}OfTrace','type').count()
+
+    frequency = frequency.orderBy(col(f'{dimension}OfTrace').asc())
+
+    return frequency
+
 def jobsTasksOnAverageByDimension(events,dimension='hour'):
 
     dimension_options = {
@@ -101,6 +119,7 @@ def unionAll(dfs):
  
 parser = argparse.ArgumentParser()
 parser.add_argument('--dimension', required=True)
+parser.add_argument('--task', required=True)
 args = parser.parse_args()
 
 conf = SparkConf()
@@ -113,7 +132,7 @@ spark = SparkSession \
 
 collectionsEvents = spark.read.option("Header",True).csv("google-traces/collection_events/collection_events-000000000000.csv", inferSchema=True)
 
-instanceFilesIndexes = list(range(0,45))
+instanceFilesIndexes = list(range(0,2))
 instanceFilesIndexes = [
     '0'+str(index) if index < 10 else str(index)
     for index in instanceFilesIndexes
@@ -126,22 +145,25 @@ eventsFrames = [
 
 unifiedInstanceEvents = unionAll(eventsFrames)
 
-#REQUISITO 1
-# resourceRequest(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
-# resourceRequest(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
-# resourceRequest(unifiedInstanceEvents,'stddev',args.dimension).write.csv(f'resource_stddev_usage_{args.dimension}',header=True)
+if args.task == '1':
+    # REQUISITO 1
+    resourceRequest(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
+    resourceRequest(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
+    resourceRequest(unifiedInstanceEvents,'stddev',args.dimension).write.csv(f'resource_stddev_usage_{args.dimension}',header=True)
 
-#REQUISITO 3
-# avgJob = jobsTasksOnAverageByDimension(collectionsEvents,dimension=args.dimension)
-# print(f"Jobs by {args.dimension}: " + str(avgJob))
-# jobsTaskAlongDimension(collectionsEvents,dimension=args.dimension).write.csv(f'jobs_{args.dimension}',header=True)
+if args.task == '2':
+    #REQUISITO 2
+    jobTypeFrequency(collectionsEvents,args.dimension).write.csv(f'jobs_type_frequency_{args.dimension}',header=True)
 
-#REQUISITO 4
-# avgTask = jobsTasksOnAverageByDimension(unifiedInstanceEvents,dimension=args.dimension)
-# print(f"Tasks by {args.dimension}: " + str(avgTask))
-jobsTaskAlongDimension(unifiedInstanceEvents,dimension=args.dimension).write.csv(f'tasks_{args.dimension}',header=True)
+if args.task == '3':
+    #REQUISITO 3
+    avgJob = jobsTasksOnAverageByDimension(collectionsEvents,dimension=args.dimension)
+    print(f"Jobs by {args.dimension}: " + str(avgJob))
+    jobsTaskAlongDimension(collectionsEvents,dimension=args.dimension).write.csv(f'jobs_{args.dimension}',header=True)
 
-# avgTaskHour = jobsTasksHour(unifiedInstanceEvents)
-# avgResourceHourly = avgResourceRequestHourly(unifiedInstanceEvents)
-# totalResourceHourly = sumResourceRequestHourly(unifiedInstanceEvents)
-# jobsTaskHourbyHour(unifiedInstanceEvents)
+if args.task == '4':
+    #REQUISITO 4
+    avgTask = jobsTasksOnAverageByDimension(unifiedInstanceEvents,dimension=args.dimension)
+    print(f"Tasks by {args.dimension}: " + str(avgTask))
+    jobsTaskAlongDimension(unifiedInstanceEvents,dimension=args.dimension).write.csv(f'tasks_{args.dimension}',header=True)
+

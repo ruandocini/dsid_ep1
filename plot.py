@@ -2,13 +2,27 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 
-avg = pd.read_csv('tasks_day/part-00000-89fcce30-b844-4397-9f5d-40ce21c54df2-c000.csv')
+avg = pd.read_csv('jobs_type_frequency_hour/part-00000-77f2cca7-e671-46bb-876a-581850046392-c000.csv')
 
-ax = sns.barplot(avg["dayOfTrace"],avg["count"])
+avg = avg.pivot(
+    index=["hourOfTrace"],
+    columns="type",
+    values="count"
+)
+
+totals = list(avg.sum(axis=1))
+
+print(avg)
+print()
+
+for idx, total in enumerate(totals):
+    print(idx,total)
+    avg.iloc[idx] = avg.loc[idx]/total
+
+ax = avg.plot(kind='bar', stacked=True)
 
 ax.set_xticklabels(ax.get_xticklabels(),rotation = 90)
-plt.xlabel('Dia')
-plt.ylabel('Contagem de Tasks')
+plt.xlabel('Hora')
+plt.ylabel('Contagem de Jobs')
 
 plt.show()
-
