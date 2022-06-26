@@ -1,7 +1,8 @@
+from statistics import mean
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType,StructField, StringType, IntegerType
-from pyspark.sql.functions import col, asc,desc, count, max, min
+from pyspark.sql.functions import col, asc,desc, count, max, min, round
 import functools
 
 def jobsTasksHour(events):
@@ -19,18 +20,18 @@ def jobsTasksHour(events):
         interessados nesta função.
         Seleciono os campos de tempo maiores que zero para filtrar coisas que aconteceram
         antes do trace ou dps deles, demonstrados no dataset pelos valores (0 e 2e63-1)
-        
+
     """
 
-    events = events.withColumn('time',col('time').cast("int"))
+    events = events.withColumn('casted_time',col('time').cast("long"))
+    events = events.filter(events.casted_time > 0)
     submitted = events.filter(events.type == 0)
-    submitted = submitted.filter(events.time > 0)
 
     count = submitted.rdd.count()
-    microToHour = 3.6e+9
+    microToHour = 3600000000.0
 
-    traceEnd = submitted.select('time').rdd.max()[0]
-    traceStart = submitted.select('time').rdd.min()[0]
+    traceEnd = events.select(max('casted_time')).collect()[0][0]
+    traceStart = events.select(min('casted_time')).collect()[0][0]
 
     hoursElapsed = (traceEnd-traceStart)/microToHour
 
@@ -38,11 +39,48 @@ def jobsTasksHour(events):
 
     return eventsPerHour
 
+def avgResourceRequestHourly(events):
+    microToHour = 3.6e+9
+
+    events = events.withColumn('time',col('time').cast("long"))
+    events = events.filter(events.time > 0)
+
+    events = events.withColumn('hourOfTrace',round(col('time')/microToHour,0))
+
+    averageCpuUsagePerHour = events.groupBy('hourOfTrace').avg('`resource_request.memory`','`resource_request.cpus`')
+
+    return averageCpuUsagePerHour
+
+def totalResourceRequestHourly(events):
+    microToHour = 3.6e+9
+
+    events = events.withColumn('time',col('time').cast("long"))
+    events = events.filter(events.time > 0)
+
+    events = events.withColumn('hourOfTrace',round(col('time')/microToHour,0))
+
+    sumCpuUsagePerHour = events.groupBy('hourOfTrace').sum('`resource_request.memory`','`resource_request.cpus`')
+    
+    return sumCpuUsagePerHour
+
+def jobsTaskHourbyHour(events):
+    microToHour = 3.6e+9
+
+    events = events.withColumn('time',col('time').cast("long"))
+    events = events.filter(events.time > 0)
+    events = events.filter(events.type == 0)
+
+
+    events = events.withColumn('hourOfTrace',round(col('time')/microToHour,0))
+
+    countJobsTaskHour = events.groupBy('hourOfTrace').count()
+    
+    return countJobsTaskHour
+
 def unionAll(dfs):
     return functools.reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
     
  
-
 conf = SparkConf()
 sc = SparkContext(conf=conf)
 
@@ -53,7 +91,7 @@ spark = SparkSession \
 
 collectionsEvents = spark.read.option("Header",True).csv("google-traces/collection_events/collection_events-000000000000.csv", inferSchema=True)
 
-instanceFilesIndexes = list(range(0,45))
+instanceFilesIndexes = list(range(0,1))
 instanceFilesIndexes = [
     '0'+str(index) if index < 10 else str(index)
     for index in instanceFilesIndexes
@@ -66,4 +104,9 @@ eventsFrames = [
 
 unifiedInstanceEvents = unionAll(eventsFrames)
 
-print(jobsTasksHour(unifiedInstanceEvents))
+# avgJobHour = jobsTasksHour(collectionsEvents)
+# avgTaskHour = jobsTasksHour(unifiedInstanceEvents)
+# avgResourceHourly = avgResourceRequestHourly(unifiedInstanceEvents)
+# totalResourceHourly = sumResourceRequestHourly(unifiedInstanceEvents)
+# jobsTaskHourbyHour(unifiedInstanceEvents)
+# jobsTaskHourbyHour(collectionsEvents).plot.hist()
