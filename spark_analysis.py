@@ -66,7 +66,7 @@ def resourceRequest(events,operation='sum',dimension='hour'):
 
 def jobTypeFrequency(events,dimension='hour'):
 
-    """"
+    """
 
     Criada para mostrar qual a distribuição dos eventos (FAILED, SUBMITTED, STOPPED) dentro
     dos dados que temos do cluster, tambem funciona com o parametro de dimensão, ou seja,
@@ -83,7 +83,7 @@ def jobTypeFrequency(events,dimension='hour'):
     Essa função foi criada para resolver a análise de número 6:
     Distribuição dos tipos de eventos nos Jobs (coluna type) (extra)
 
-    """"
+    """
 
     dimension_options = {
         'hour':MICRO_TO_HOUR,
@@ -190,7 +190,7 @@ def jobsTaskAlongDimension(events,dimension='hour'):
 
 def timeJobUntilTask(collectionsEvents, unifiedInstanceEvents):
 
-    """"
+    """
     Função que é responsavel por extrair quanto tempo a primeira task de um job
     demora para ser inicializada.
 
@@ -216,7 +216,7 @@ def timeJobUntilTask(collectionsEvents, unifiedInstanceEvents):
     Retornando assim esse dataset em ordem crescente
 
     Essa parte do código responde a analise 5.
-    """"
+    """
     dimension_options = {
         'seconds':MICRO_TO_SECONDS,
         'hour':MICRO_TO_HOUR,
