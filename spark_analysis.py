@@ -228,5 +228,5 @@ if args.task == '5':
     timeUntilStart.write.csv(f'time_until_start',header=True)
 
 if args.task == '6':
-    #ANALISE 2
+    #ANALISE 6
     jobTypeFrequency(collectionsEvents,args.dimension).write.csv(f'jobs_type_frequency_{args.dimension}',header=True)
