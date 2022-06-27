@@ -12,6 +12,32 @@ MICRO_TO_DAY = 8.64e+10
 MICRO_TO_SECONDS = 1e-6
 
 def resourceRequest(events,operation='sum',dimension='hour'):
+    """
+
+    Função construída para mostrar a quantidade de recurso requerido por 
+    uma certa dimensão de tempo, por exemplo, como variou a requisição
+    de CPU durante as horas que temos disponíveis no trace.
+
+    Os cast's para long são necessários por causa do typing do spark, que estava
+    tendo dificuldade na leitura dos arquivos.
+
+    Selecionamos apenas valores maiores que 0 no tempo, pois valores menores que esse
+    representam que a ação aconteceu fora do trace, segundo o pdf disponibilizado
+    sobre o conjunto de dados, podendo ser 0 ou 2e63-1, quando esse ocorre após o termino
+    do trace.
+
+    A conversão do timestamp é feita para a hora/dia que o evento ocorreu, para podermos 
+    observar numa granularidade que faça mais sentido.
+
+    E após isso podemos escolher uma função de agregação para aplicar nos dados.
+
+    Sendo  assim no retorno temos a agregação dos recursos de CPU e de memoria, pelo
+    período de tempo desejado.
+
+    Essa função foi criado com intenção de resolver a analise 1:
+    Como é a requisição de recursos computacionais (memória e CPU) do cluster durante esse tempo? 
+
+    """
 
     dimension_options = {
         'hour':MICRO_TO_HOUR,
