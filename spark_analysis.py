@@ -312,6 +312,10 @@ spark = SparkSession \
 
 collectionsEvents = spark.read.option("Header",True).csv("google-traces/collection_events/collection_events-000000000000.csv", inferSchema=True)
 
+## Essa parte é responsavel por gerar os nomes de arquivos
+## e ler todos eles, para que seja possível fazer a analise
+## num dataset unificado, a lista de 0 á 45, é porque esses são
+## os números dos arquivos que possuímos
 instanceFilesIndexes = list(range(0,45))
 instanceFilesIndexes = [
     '0'+str(index) if index < 10 else str(index)
