@@ -9,6 +9,7 @@ import argparse
 
 MICRO_TO_HOUR = 3.6e+9
 MICRO_TO_DAY = 8.64e+10
+MICRO_TO_SECONDS = 1e-6
 
 def resourceRequest(events,operation='sum',dimension='hour'):
 
@@ -113,6 +114,39 @@ def jobsTaskAlongDimension(events,dimension='hour'):
     
     return countJobsTaskHour
 
+def timeJobUntilTask(collectionsEvents, unifiedInstanceEvents):
+
+    dimension_options = {
+        'seconds':MICRO_TO_SECONDS,
+        'hour':MICRO_TO_HOUR,
+        'day':MICRO_TO_DAY
+    }
+
+    collectionsEvents = collectionsEvents.withColumn('job_time',col('time').cast("long"))
+    collectionsEvents = collectionsEvents.withColumn('col_id',col('collection_id'))
+    collectionsEvents = collectionsEvents.withColumn('col_type',col('type'))
+    collectionsEvents = collectionsEvents.filter(collectionsEvents.job_time > 0)
+
+    unifiedInstanceEvents = unifiedInstanceEvents.withColumn('task_time',col('time').cast("long"))
+    unifiedInstanceEvents = unifiedInstanceEvents.filter(unifiedInstanceEvents.task_time > 0)
+
+    unifiedInstanceEvents = unifiedInstanceEvents.groupBy('collection_id','type').min('task_time')
+    collectionsEvents = collectionsEvents.groupBy('col_id','col_type').min('job_time')
+
+    joinedSets = collectionsEvents.join(
+        unifiedInstanceEvents,
+        on=[collectionsEvents.col_id == unifiedInstanceEvents.collection_id, collectionsEvents.col_type == unifiedInstanceEvents.type],
+        how="inner"
+    )
+    
+    joinedSets = joinedSets.withColumn('timeGapJobTask',((col('min(task_time)') - col('min(job_time)'))))
+
+    joinedSets = joinedSets.groupBy('timeGapJobTask').count()
+
+    joinedSets = joinedSets.orderBy(col('count').desc())
+
+    return joinedSets
+
 def unionAll(dfs):
     return functools.reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
     
@@ -132,7 +166,7 @@ spark = SparkSession \
 
 collectionsEvents = spark.read.option("Header",True).csv("google-traces/collection_events/collection_events-000000000000.csv", inferSchema=True)
 
-instanceFilesIndexes = list(range(0,2))
+instanceFilesIndexes = list(range(0,45))
 instanceFilesIndexes = [
     '0'+str(index) if index < 10 else str(index)
     for index in instanceFilesIndexes
@@ -146,24 +180,32 @@ eventsFrames = [
 unifiedInstanceEvents = unionAll(eventsFrames)
 
 if args.task == '1':
-    # REQUISITO 1
+    # ANALISE 1
     resourceRequest(unifiedInstanceEvents,'avg',args.dimension).write.csv(f'resource_avg_usage_{args.dimension}',header=True)
     resourceRequest(unifiedInstanceEvents,'sum',args.dimension).write.csv(f'resource_sum_usage_{args.dimension}',header=True)
     resourceRequest(unifiedInstanceEvents,'stddev',args.dimension).write.csv(f'resource_stddev_usage_{args.dimension}',header=True)
 
 if args.task == '2':
-    #REQUISITO 2
-    jobTypeFrequency(collectionsEvents,args.dimension).write.csv(f'jobs_type_frequency_{args.dimension}',header=True)
+    # ANALISE 2
+    
 
 if args.task == '3':
-    #REQUISITO 3
+    #ANALISE 3
     avgJob = jobsTasksOnAverageByDimension(collectionsEvents,dimension=args.dimension)
     print(f"Jobs by {args.dimension}: " + str(avgJob))
     jobsTaskAlongDimension(collectionsEvents,dimension=args.dimension).write.csv(f'jobs_{args.dimension}',header=True)
 
 if args.task == '4':
-    #REQUISITO 4
+    #ANALISE 4
     avgTask = jobsTasksOnAverageByDimension(unifiedInstanceEvents,dimension=args.dimension)
     print(f"Tasks by {args.dimension}: " + str(avgTask))
     jobsTaskAlongDimension(unifiedInstanceEvents,dimension=args.dimension).write.csv(f'tasks_{args.dimension}',header=True)
 
+if args.task == '5':
+    #ANALISE 5
+    timeUntilStart = timeJobUntilTask(collectionsEvents,unifiedInstanceEvents)
+    timeUntilStart.write.csv(f'time_until_start',header=True)
+
+if args.task == '6':
+    #ANALISE 2
+    jobTypeFrequency(collectionsEvents,args.dimension).write.csv(f'jobs_type_frequency_{args.dimension}',header=True)
