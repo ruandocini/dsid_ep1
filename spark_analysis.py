@@ -249,9 +249,21 @@ def timeJobUntilTask(collectionsEvents, unifiedInstanceEvents):
     return joinedSets
 
 def unionAll(dfs):
+
+    """
+    Usada apenas para unir todos os dataset para todas as analises que requerem olhar para os eventos de instancia,
+    usando reduce e lambda functions junto com uma função do proprio spark dataset
+    """
+
     return functools.reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
     
 def jobTier(priority):
+    """
+    Usada para criar uma UDF function do Spark para definir em qual tier um job/task se encaixa.
+    É importante definir como um UDF pois UDF's são paralelizaveis, diferentemente se criasemos
+    somente uma parte do codigo que não interage com a estrutura do Spark.
+    """
+
     if priority <= 99:
         return 'Free Tier'
     if priority <= 115:
@@ -264,6 +276,21 @@ def jobTier(priority):
         return 'Monitoring tier'
  
 def eventTypePerTier(trace,event=0):
+    
+    """
+    Tem como intenção observar quantos eventos ocorrem em determinado tier, por exemplo, quantas maquinas falham por Tier?
+
+    Primeiro geramos a UDF da função localizada acima, criada para transformar prioridade em tier e facilitar as analises.
+    Apos isso temos um filtro de evento, ou seja, podemos extrair métricas para qualquer evento passado como parametro 
+    (SUBMIT = 0, KILL = 7, FINISH = 6).
+
+    E por fim temos um agrupamento pelo tier e a realização de uma contagem, podendo assim
+    retornar qualquer coisa que relacione eventos e tiers
+
+    Essa função foi criada para resolver a análise de número 2 
+
+    """
+
     udf_tier = udf(lambda x:jobTier(x),StringType())
     trace = trace.withColumn('jobTier',udf_tier(col('priority')))
     submitted = trace.filter(trace.type == event)
