@@ -190,6 +190,33 @@ def jobsTaskAlongDimension(events,dimension='hour'):
 
 def timeJobUntilTask(collectionsEvents, unifiedInstanceEvents):
 
+    """"
+    Função que é responsavel por extrair quanto tempo a primeira task de um job
+    demora para ser inicializada.
+
+    Primeiramente temos alguns castings e replicação de colunas para uso no join,
+    como as colunas ficam ambiguas é importante ter as colunas nomeadas de maneira
+    correta para exercer manipulação futura. Após isso o filtro de tempo valido
+    também é efetuado aqui.
+
+    Depois o minimo do tempo de uma task, por id de collection e type, pois,
+    como podem existir varios, é importante pegar o primeiro que aparece no trace.
+
+    Fazemos o mesmo para o collection id do job e type, para gerarmos a tabela
+    para o join, somente com os dados que serão relevantes para resolver esse problema em si.
+
+    Após isso temos a união das tabelas por collection_id e type.
+
+    E a diferença entre o tempo do job e da primeira task, tendo assim o gap
+    entre essas duas ações.
+
+    Depois disso agrupamos esse número, para ter a distribuição de ocorrência dos gaps,
+    ou seja, qual o tempo mais comum de espera para primeira task de um job acontecer? Qual é essa distribuição?
+
+    Retornando assim esse dataset em ordem crescente
+
+    Essa parte do código responde a analise 5.
+    """"
     dimension_options = {
         'seconds':MICRO_TO_SECONDS,
         'hour':MICRO_TO_HOUR,
