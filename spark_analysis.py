@@ -3,9 +3,9 @@ from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType,StructField, StringType, IntegerType
 from pyspark.sql.functions import col, asc,desc, count, max, min, round, avg, stddev
+from pyspark.sql.functions import udf,col
 import functools
 import argparse
-
 
 MICRO_TO_HOUR = 3.6e+9
 MICRO_TO_DAY = 8.64e+10
@@ -150,7 +150,25 @@ def timeJobUntilTask(collectionsEvents, unifiedInstanceEvents):
 def unionAll(dfs):
     return functools.reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
     
+def jobTier(priority):
+    if priority <= 99:
+        return 'Free Tier'
+    if priority <= 115:
+        return 'Best-effort Batch'
+    if priority <= 119:
+        return 'Mid-tier'
+    if priority <= 359:
+        return 'Production tier'
+    if priority >= 360:
+        return 'Monitoring tier'
  
+def eventTypePerTier(trace,event=0):
+    udf_tier = udf(lambda x:jobTier(x),StringType())
+    trace = trace.withColumn('jobTier',udf_tier(col('priority')))
+    submitted = trace.filter(trace.type == event)
+    submitted = submitted.groupBy('jobTier').count()
+    return submitted
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--dimension', required=True)
 parser.add_argument('--task', required=True)
@@ -187,7 +205,10 @@ if args.task == '1':
 
 if args.task == '2':
     # ANALISE 2
-    
+    jobPerTier = eventTypePerTier(collectionsEvents,0)
+    jobPerTier.write.csv(f'jobsSubmittedPerTier',header=True)
+    jobPerTier = eventTypePerTier(collectionsEvents,5)
+    jobPerTier.write.csv(f'jobsFailedPerTier',header=True)
 
 if args.task == '3':
     #ANALISE 3
