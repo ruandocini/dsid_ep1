@@ -83,7 +83,6 @@ def jobTypeFrequency(events,dimension='hour'):
     Essa função foi criada para resolver a análise de número 6:
     Distribuição dos tipos de eventos nos Jobs (coluna type) (extra)
 
-
     """"
 
     dimension_options = {
@@ -104,26 +103,33 @@ def jobTypeFrequency(events,dimension='hour'):
 
 def jobsTasksOnAverageByDimension(events,dimension='hour'):
 
+    """
+    Criada para mostrar a quantidade de jobs ou task submetidos numa determinada
+    granularidade de tempo, ou seja, quantos eventos foram em média por hora ou por 
+    dia.
+
+    Temos o mesmo cast de long, filtro para retirar valores de tempo não pertencentes 
+    ao trace.
+
+    Após isso fazemos um filtro na coluna type, para pegarmos apenas os eventos de
+    submissão que são os que nos interessam nesse momento.
+
+    Uma vez o filtro feito, temos que ver o horario de inicio e fim das submissões,
+    realizar a diferença e colocar na granularidade correta.
+
+    Um contagem de todas as submissões é feita, e então temos a divisão,
+    da contagem pelo período, assim obtendo a média de tasks ou jobs
+    submetidas, dependendo do input que for dado a função.
+
+    Essa função gera parte da análise 3 e 4, retornando um float,
+    que significa a média citada acima, impressa no console posteriormente.
+
+    """
+
     dimension_options = {
         'hour':MICRO_TO_HOUR,
         'day':MICRO_TO_DAY
     }
-
-    """
-
-        RESPOSTA AO TOPICO 3 e 4
-
-        Primeiro irei responder quantos jobs/tasks são submetidos por horas no trace
-        Como os filtros que faria seriam os mesmos, citados abaixo, construi uma função
-        agnostica pra qual tipo de evento estou tratando (job ou task)
-        Nesse caso seria necessário filtrar linhas que são pertencentes a alloc set
-        mas como não tenho o campo collection_type, vou considerar que todas as linhas são jobs
-        O 0 do da coluna Type é referente as ações de SUBMIT do trace, nas quais estamos
-        interessados nesta função.
-        Seleciono os campos de tempo maiores que zero para filtrar coisas que aconteceram
-        antes do trace ou dps deles, demonstrados no dataset pelos valores (0 e 2e63-1)
-
-    """
 
     events = events.withColumn('casted_time',col('time').cast("long"))
     events = events.filter(events.casted_time > 0)
@@ -141,6 +147,28 @@ def jobsTasksOnAverageByDimension(events,dimension='hour'):
     return eventsPerDimension
 
 def jobsTaskAlongDimension(events,dimension='hour'):
+
+    """
+
+    Criada para mostrar como se comportam as submissões ao longo do tempo, ou seja,
+    quantas submissões tivemos por período de tempo.
+    EX: submissões de task's na hora 1, submissões de jobs na hora 2
+
+    Também parametrizavel pela dimensão (dia e hora)
+
+    Mesmos fitros de tempo valido, e de tipo para pegar apenas submissão, como
+    tambbém a conversão de micro segundos.
+
+    Depois temos um agrupamento por dimensão no trace, realizando assim a contagem,
+    e uma ordenação em ordem ascendente
+
+    A função retorna a quantidade de jobs/traces ao longo das horas/dias,
+    dependendo do input dado a ela.
+
+    Esta função gera a segunda parte da resposta 3 e 4, criando um historico
+    de contagem ao londo do tempo do trace.
+
+    """
 
     dimension_options = {
         'hour':MICRO_TO_HOUR,
