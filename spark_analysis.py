@@ -66,6 +66,26 @@ def resourceRequest(events,operation='sum',dimension='hour'):
 
 def jobTypeFrequency(events,dimension='hour'):
 
+    """"
+
+    Criada para mostrar qual a distribuição dos eventos (FAILED, SUBMITTED, STOPPED) dentro
+    dos dados que temos do cluster, tambem funciona com o parametro de dimensão, ou seja,
+    vemos essa variação ao longo do tempo.
+
+    Temos o mesmo casting para long da função anterior, o mesmo filtro para logs com tempo valido
+    e conversão para a dimensão desejada.
+
+    O que fica como exclusividade dessa função é a implementação da contagem de eventos por dia 
+    e por evento, e após isso uma ordenação em ordem crescente de tempo, inicio para o fim do trace.
+
+    Tendo assim como retorno, a quantidade de cada um dos eventos, por dimensão do conjunto de dados
+
+    Essa função foi criada para resolver a análise de número 6:
+    Distribuição dos tipos de eventos nos Jobs (coluna type) (extra)
+
+
+    """"
+
     dimension_options = {
         'hour':MICRO_TO_HOUR,
         'day':MICRO_TO_DAY
